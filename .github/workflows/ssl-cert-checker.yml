@@ -1,0 +1,115 @@
+name: ssl-cert-checker
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 1 * * *" # 0900Hrs, GMT+8
+  workflow_dispatch:
+
+jobs:
+  check_ssl:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install openSSL
+        run: sudo apt-get update && sudo apt-get install -y openssl
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run SSL check
+        run: |
+          DATE_TIME=$(date -u +"%d/%m/%Y %H:%M" --date="8 hours")
+          declare -a domains=("expired.badssl.com" 
+                             "unknown.domain.com" 
+                             "example.com"
+                             "google.com"
+                             "netflix.com")
+          # Store the content above SSL Certificate Expiry Status
+          ABOVE_CONTENT=$(sed -n '1,/^## SSL Certificate Expiry Status/ p' README.md)
+          echo "$ABOVE_CONTENT" > README.md.tmp
+          echo "<!-- prettier-ignore -->" >> README.md.tmp
+          echo "| Domain | Status | Expiry | Remaining Days |" >> README.md.tmp
+          echo "|--------|--------|--------|----------------|" >> README.md.tmp
+          for domain in "${domains[@]}"; do
+            if expiry_date=$(openssl s_client -connect "$domain":443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | awk '{sub("notAfter=", "", $1); printf "%s %s %s\n", $2, $1, $4}'); then
+              if [[ -n "$expiry_date" ]]; then
+                expiry_timestamp=$(date -d "$expiry_date" "+%s")
+                current_timestamp=$(date "+%s")
+                remaining_seconds=$((expiry_timestamp - current_timestamp))
+                remaining_days=$((remaining_seconds / (60*60*24)))
+                if [[ $remaining_days -lt 0 ]]; then
+                  status="[![SSL Certificate Status: Expired](https://img.shields.io/badge/Expired-red.svg)]($domain)"
+                else
+                  status="[![SSL Certificate Status: Active](https://img.shields.io/badge/Active-brightgreen.svg)]($domain)"
+                fi
+              fi
+            fi
+
+            # Set status, expiry date, and remaining days to "Unknown" and "N.A." if expiry_date is empty
+            [[ -z "$expiry_date" ]] && status="[![SSL Certificate Status: Unknown](https://img.shields.io/badge/Unknown-lightgrey.svg)]($domain)" && expiry_date="N.A." && remaining_days="N.A."
+            
+            echo "| www.$domain | $status | $expiry_date | $remaining_days |" >> README.md.tmp
+
+            # Check and store domain if remaining_days < 7
+            if [[ $remaining_days -lt 7 && $status != *"expired"* ]]; then
+              OUTPUT_CONTENT+="The SSL certificate for $domain is expiring in $remaining_days days\n"
+              echo "OUTPUT_CONTENT=$OUTPUT_CONTENT" >> $GITHUB_ENV
+            fi
+
+          done
+          echo -e "\nLast Checked: $DATE_TIME" >> README.md.tmp
+
+          mv README.md.tmp README.md
+
+      - name: Print README.md content
+        uses: actions/github-script@v4
+        with:
+          script: |
+            const fs = require('fs')
+            const readmeContent = fs.readFileSync('README.md', 'utf8')
+            console.log(readmeContent)
+
+      - name: Commit and push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
+          branch=${branch#refs/heads/}
+          git checkout $branch
+          git pull origin $branch
+          git add README.md
+          git commit -m "Update SSL certificate expiry status"
+          git push origin $branch
+
+      - name: Send Slack Message
+        if: ${{ env.OUTPUT_CONTENT && env.OUTPUT_CONTENT != '[]' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "SSL Certificate Expiry Alert",
+              "channel": "#${{ env.SLACK_CHANNEL }}",
+              "attachments": [
+                {
+                  "fallback": "SSL Certificate Expiry Alert",
+                  "color": "#f55742",
+                  "fields": [
+                    {
+                      "title": "Info",
+                      "value": "${{ env.OUTPUT_CONTENT }}",
+                      "short": true
+                    }
+                  ],
+                  "footer": "SSL Checker",
+                  "ts": "{{ steps.time.outputs.now }}"
+                }
+              ]
+            }
+        env:
+          SLACK_CHANNEL: sally-devs
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_SALLY_DEV }}
