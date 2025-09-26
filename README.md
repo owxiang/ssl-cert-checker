@@ -4,10 +4,10 @@
 <!-- prettier-ignore -->
 | Domain | Status | Expiry | Remaining Days |
 |--------|--------|--------|----------------|
-| www.expired.badssl.com | [![SSL Certificate Status: Expired](https://img.shields.io/badge/Expired-red.svg)](expired.badssl.com) | 12 Apr 2015 | -3819 |
+| www.expired.badssl.com | [![SSL Certificate Status: Expired](https://img.shields.io/badge/Expired-red.svg)](expired.badssl.com) | 12 Apr 2015 | -3820 |
 | www.unknown.domain.com | [![SSL Certificate Status: Unknown](https://img.shields.io/badge/Unknown-lightgrey.svg)](unknown.domain.com) | N.A. | N.A. |
-| www.example.com | [![SSL Certificate Status: Active](https://img.shields.io/badge/Active-brightgreen.svg)](example.com) | 15 Jan 2026 | 111 |
-| www.google.com | [![SSL Certificate Status: Active](https://img.shields.io/badge/Active-brightgreen.svg)](google.com) | 1 Dec 2025 | 66 |
-| www.netflix.com | [![SSL Certificate Status: Active](https://img.shields.io/badge/Active-brightgreen.svg)](netflix.com) | 4 Sep 2026 | 343 |
+| www.example.com | [![SSL Certificate Status: Active](https://img.shields.io/badge/Active-brightgreen.svg)](example.com) | 15 Jan 2026 | 110 |
+| www.google.com | [![SSL Certificate Status: Active](https://img.shields.io/badge/Active-brightgreen.svg)](google.com) | 1 Dec 2025 | 65 |
+| www.netflix.com | [![SSL Certificate Status: Active](https://img.shields.io/badge/Active-brightgreen.svg)](netflix.com) | 4 Sep 2026 | 342 |
 
-Last Checked: 25/09/2025 09:32
+Last Checked: 26/09/2025 09:32
